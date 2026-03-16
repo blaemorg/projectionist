@@ -12,6 +12,7 @@ client.once(Events.ClientReady, (readyClient) => {
 client.login(token);
 
 client.commands = new Collection();
+client.cooldowns = new Collection();
 
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
@@ -22,7 +23,6 @@ for (const folder of commandFolders) {
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
-    // Set a new item in the Collection with the key as the command name and the value as the exported module
     if ('data' in command && 'execute' in command) {
       client.commands.set(command.data.name, command);
     } else {
@@ -38,6 +38,32 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (!command) {
     console.error(`No command matching ${interaction.commandName} was found.`);
     return;
+  }
+
+  const { cooldowns } = interaction.client;
+
+  if (!cooldowns.has(command.data.name)) {
+    cooldowns.set(command.data.name, new Collection());
+  }
+
+  const now = Date.now();
+  const timestamps = cooldowns.get(command.data.name);
+  const defaultCooldownDuration = 3;
+  const cooldownAmount = (command.cooldown ?? defaultCooldownDuration) * 1_000;
+
+  if (timestamps.has(interaction.user.id)) {
+    const expirationTime = timestamps.get(interaction.user.id) + cooldownAmount;
+
+    if (now < expirationTime) {
+      const expiredTimestamp = Math.round(expirationTime / 1_000);
+      return interaction.reply({
+        content: `Please wait, you are on a cooldown for \`${command.data.name}\`. You can use it again <t:${expiredTimestamp}:R.`,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    timestamps.set(interaction.user.id, now);
+    setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
   }
 
   try {
