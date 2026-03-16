@@ -9,6 +9,8 @@ client.once(Events.ClientReady, (readyClient) => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
+client.login(token);
+
 client.commands = new Collection();
 
 const foldersPath = path.join(__dirname, 'commands');
@@ -34,7 +36,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   const command = interaction.client.commands.get(interaction.commandName);
 
   if (!command) {
-    console.error('No command matching ${interaction.commandName} was found.');
+    console.error(`No command matching ${interaction.commandName} was found.`);
     return;
   }
 
@@ -49,7 +51,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
     } else {
       await interaction.reply({
-        content: 'There was an error while excecuting this command!',
+        content: 'There was an error while executing this command!',
         flags: MessageFlags.Ephemeral,
       });
     }
